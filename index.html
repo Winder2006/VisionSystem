@@ -1,0 +1,861 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0a0c10">
+  <meta name="description" content="Teach your webcam to tell two things apart, right in your browser.">
+  <title>Teach the Machine</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%232dd4bf'/%3E%3Cstop offset='1' stop-color='%23fb7185'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='32' height='32' rx='9' fill='url(%23g)'/%3E%3Ccircle cx='16' cy='16' r='6' fill='none' stroke='%230a0c10' stroke-width='3'/%3E%3Ccircle cx='16' cy='16' r='2' fill='%230a0c10'/%3E%3C/svg%3E">
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0a0c10;
+      --surface: #11141b;
+      --surface-2: #181c26;
+      --border: #232937;
+      --text: #edf0f6;
+      --muted: #8b94a7;
+      --faint: #5d6678;
+      --class-0: #2dd4bf;
+      --class-1: #fb7185;
+      --ok: #4ade80;
+      --warn: #fbbf24;
+      --err: #f87171;
+      --radius: 16px;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; }
+
+    body {
+      min-height: 100vh;
+      min-height: 100dvh;
+      background-color: var(--bg);
+      background-image: radial-gradient(1100px 520px at 50% -220px, #17213b 0%, rgba(10, 12, 16, 0) 70%);
+      background-repeat: no-repeat;
+      color: var(--text);
+      font: 16px/1.5 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      -webkit-text-size-adjust: 100%;
+    }
+
+    .page {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 28px 24px 32px;
+      padding-left: max(24px, env(safe-area-inset-left));
+      padding-right: max(24px, env(safe-area-inset-right));
+    }
+
+    /* ---------- Header ---------- */
+    header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px 24px;
+      margin-bottom: 20px;
+    }
+    .brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
+    .logo {
+      flex: none;
+      width: 42px;
+      height: 42px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, var(--class-0), var(--class-1));
+      display: grid;
+      place-items: center;
+      box-shadow: 0 6px 24px rgba(45, 212, 191, 0.18);
+    }
+    h1 { margin: 0; font-size: 22px; line-height: 1.2; letter-spacing: -0.02em; }
+    .tagline { margin: 2px 0 0; color: var(--muted); font-size: 14px; }
+
+    .status {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      max-width: 100%;
+      padding: 8px 14px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: var(--surface);
+      font-size: 14px;
+      line-height: 1.45;
+    }
+    .status .dot {
+      flex: none;
+      width: 8px;
+      height: 8px;
+      margin-top: 6px;
+      border-radius: 50%;
+      background: var(--warn);
+    }
+    .status.loading .dot { animation: pulse 1.2s ease-in-out infinite; }
+    .status.ready .dot { background: var(--ok); box-shadow: 0 0 0 4px rgba(74, 222, 128, 0.15); }
+    .status.error {
+      flex-basis: 100%;
+      border-radius: 12px;
+      border-color: rgba(248, 113, 113, 0.45);
+      background: rgba(248, 113, 113, 0.08);
+      padding: 12px 16px;
+    }
+    .status.error .dot { background: var(--err); }
+    #statusText { white-space: pre-line; }
+
+    /* ---------- Layout ---------- */
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr);
+      gap: 20px;
+      align-items: start;
+    }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+    }
+    .c0 { --accent: var(--class-0); }
+    .c1 { --accent: var(--class-1); }
+
+    /* ---------- Camera ---------- */
+    .stage { overflow: hidden; }
+    .video-wrap {
+      position: relative;
+      aspect-ratio: 4 / 3;
+      background: #05070a;
+      overflow: hidden;
+    }
+    .video-wrap video {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transform: scaleX(-1); /* mirror, like looking in a mirror */
+    }
+    .video-wrap::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border: 3px solid transparent;
+      pointer-events: none;
+      transition: border-color 0.15s;
+    }
+    .video-wrap.recording::after { border-color: var(--rec-color, var(--class-0)); }
+
+    .placeholder {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      color: var(--faint);
+      font-size: 14px;
+      text-align: center;
+      padding: 16px;
+    }
+    .placeholder[hidden] { display: none; }
+
+    .rec-badge {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      max-width: calc(100% - 24px);
+      padding: 6px 12px;
+      border-radius: 999px;
+      background: rgba(0, 0, 0, 0.62);
+      -webkit-backdrop-filter: blur(6px);
+      backdrop-filter: blur(6px);
+      font-size: 13px;
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      opacity: 0;
+      transform: translateY(-4px);
+      transition: opacity 0.15s, transform 0.15s;
+    }
+    .video-wrap.recording .rec-badge { opacity: 1; transform: none; }
+    .rec-dot {
+      flex: none;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--rec-color, var(--class-0));
+      animation: pulse 1s ease-in-out infinite;
+    }
+
+    /* ---------- Prediction ---------- */
+    .prediction { padding: 18px 20px 20px; border-top: 1px solid var(--border); }
+    .eyebrow {
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .pred-main {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      gap: 2px 14px;
+      margin-top: 4px;
+      font-size: clamp(30px, 5.4vw, 46px);
+      font-weight: 750;
+      line-height: 1.15;
+      letter-spacing: -0.03em;
+    }
+    .pred-name { overflow-wrap: anywhere; transition: color 0.15s; }
+    .pred-conf { color: var(--muted); font-variant-numeric: tabular-nums; }
+    .prediction[data-winner="0"] .pred-name { color: var(--class-0); }
+    .prediction[data-winner="1"] .pred-name { color: var(--class-1); }
+    .pred-hint { margin: 6px 0 16px; color: var(--muted); font-size: 14px; }
+
+    .bars { display: grid; gap: 12px; }
+    .bar-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 6px;
+      font-size: 14px;
+    }
+    .bar-name { font-weight: 600; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .bar-pct { color: var(--muted); font-variant-numeric: tabular-nums; }
+    .bar-track { height: 10px; border-radius: 999px; background: var(--surface-2); overflow: hidden; }
+    .bar-fill {
+      width: 0;
+      height: 100%;
+      border-radius: inherit;
+      background: var(--accent);
+      transition: width 0.18s ease-out;
+    }
+
+    /* ---------- Classes ---------- */
+    .classes { display: grid; gap: 16px; }
+    .class-card { position: relative; padding: 18px 16px 16px; overflow: hidden; }
+    .class-card::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: var(--accent);
+    }
+    .field-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .swatch { width: 10px; height: 10px; border-radius: 3px; background: var(--accent); }
+    .name-input {
+      display: block;
+      width: 100%;
+      margin-top: 8px;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: var(--surface-2);
+      color: var(--text);
+      font: inherit;
+      font-weight: 600;
+      outline: none;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .name-input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent);
+    }
+    .count-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-top: 12px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+    .count-row b { color: var(--text); font-variant-numeric: tabular-nums; }
+    .clear-btn {
+      margin-right: -6px;
+      padding: 4px 6px;
+      border: 0;
+      border-radius: 6px;
+      background: none;
+      color: var(--muted);
+      font: inherit;
+      cursor: pointer;
+    }
+    .clear-btn:hover:not(:disabled) { color: var(--text); background: var(--surface-2); }
+    .clear-btn:disabled { opacity: 0.4; cursor: default; }
+    .clear-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+    .count-track { height: 4px; margin-top: 8px; border-radius: 999px; background: var(--surface-2); overflow: hidden; }
+    .count-fill { width: 0; height: 100%; background: var(--accent); transition: width 0.1s linear; }
+
+    .train-btn {
+      display: block;
+      width: 100%;
+      min-height: 52px;
+      margin-top: 14px;
+      padding: 14px 12px;
+      border: 0;
+      border-radius: 12px;
+      background: var(--accent);
+      color: #071114;
+      font: inherit;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      touch-action: none;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+      -webkit-tap-highlight-color: transparent;
+      transition: transform 0.08s, filter 0.15s, box-shadow 0.15s, background-color 0.15s;
+    }
+    .train-btn:hover:not(:disabled) { filter: brightness(1.08); }
+    .train-btn:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+    .train-btn.active {
+      transform: scale(0.98);
+      box-shadow:
+        0 0 0 4px color-mix(in srgb, var(--accent) 30%, transparent),
+        0 0 28px color-mix(in srgb, var(--accent) 45%, transparent);
+    }
+    .train-btn:disabled { background: var(--surface-2); color: var(--faint); cursor: not-allowed; }
+
+    .howto { padding: 16px 18px; color: var(--muted); font-size: 14px; }
+    .howto h2 { margin: 0 0 8px; font-size: 14px; color: var(--text); }
+    .howto ol { margin: 0; padding-left: 18px; display: grid; gap: 4px; }
+
+    footer { margin-top: 24px; text-align: center; color: var(--faint); font-size: 13px; }
+
+    @keyframes pulse { 50% { opacity: 0.35; } }
+
+    /* ---------- Tablet & phone ---------- */
+    @media (max-width: 860px) {
+      .layout { grid-template-columns: minmax(0, 1fr); }
+      .classes { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; }
+      .howto { grid-column: 1 / -1; }
+    }
+    @media (max-width: 600px) {
+      .page {
+        padding: 18px 16px 24px;
+        padding-left: max(16px, env(safe-area-inset-left));
+        padding-right: max(16px, env(safe-area-inset-right));
+      }
+      h1 { font-size: 20px; }
+      .tagline { font-size: 13px; }
+      .prediction { padding: 16px; }
+      .class-card { padding: 16px 12px 12px; }
+      .count-unit { display: none; }
+      .train-btn { font-size: 14px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation: none !important; transition: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header>
+      <div class="brand">
+        <div class="logo" aria-hidden="true">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0a0c10" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/>
+            <circle cx="12" cy="12" r="3"/>
+          </svg>
+        </div>
+        <div>
+          <h1>Teach the Machine</h1>
+          <p class="tagline">Show it two things. It learns to tell them apart.</p>
+        </div>
+      </div>
+      <div id="status" class="status loading" role="status" aria-live="polite">
+        <span class="dot" aria-hidden="true"></span>
+        <span id="statusText">Loading the AI model...</span>
+      </div>
+    </header>
+
+    <main class="layout">
+      <section class="card stage" aria-label="Camera and prediction">
+        <div class="video-wrap" id="videoWrap">
+          <video id="video" autoplay playsinline muted></video>
+          <div class="placeholder" id="placeholder">
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M23 7l-7 5 7 5V7z"/>
+              <rect x="1" y="5" width="15" height="14" rx="2"/>
+            </svg>
+            <span id="placeholderText">Waiting for the camera...</span>
+          </div>
+          <div class="rec-badge" aria-hidden="true">
+            <span class="rec-dot"></span>
+            <span>Learning <span id="recName"></span></span>
+          </div>
+        </div>
+
+        <div class="prediction" id="prediction">
+          <div class="eyebrow">Prediction</div>
+          <div class="pred-main">
+            <span class="pred-name" id="predName">&mdash;</span>
+            <span class="pred-conf" id="predConf"></span>
+          </div>
+          <p class="pred-hint" id="predHint">Getting the camera and AI model ready...</p>
+          <div class="bars">
+            <div class="bar-row c0">
+              <div class="bar-head"><span class="bar-name" id="barName0">Thumbs Up</span><span class="bar-pct" id="barPct0">0%</span></div>
+              <div class="bar-track"><div class="bar-fill" id="barFill0"></div></div>
+            </div>
+            <div class="bar-row c1">
+              <div class="bar-head"><span class="bar-name" id="barName1">Thumbs Down</span><span class="bar-pct" id="barPct1">0%</span></div>
+              <div class="bar-track"><div class="bar-fill" id="barFill1"></div></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="classes" aria-label="Classes">
+        <article class="card class-card c0">
+          <label class="field-label" for="name0"><span class="swatch"></span>Class 1</label>
+          <input class="name-input" id="name0" type="text" value="Thumbs Up" maxlength="24" autocomplete="off" spellcheck="false">
+          <div class="count-row">
+            <span><b id="count0">0</b> / 200<span class="count-unit"> examples</span></span>
+            <button class="clear-btn" id="clear0" type="button" disabled>Clear</button>
+          </div>
+          <div class="count-track"><div class="count-fill" id="countFill0"></div></div>
+          <button class="train-btn" id="train0" type="button" disabled>Hold to train</button>
+        </article>
+
+        <article class="card class-card c1">
+          <label class="field-label" for="name1"><span class="swatch"></span>Class 2</label>
+          <input class="name-input" id="name1" type="text" value="Thumbs Down" maxlength="24" autocomplete="off" spellcheck="false">
+          <div class="count-row">
+            <span><b id="count1">0</b> / 200<span class="count-unit"> examples</span></span>
+            <button class="clear-btn" id="clear1" type="button" disabled>Clear</button>
+          </div>
+          <div class="count-track"><div class="count-fill" id="countFill1"></div></div>
+          <button class="train-btn" id="train1" type="button" disabled>Hold to train</button>
+        </article>
+
+        <div class="card howto">
+          <h2>How it works</h2>
+          <ol>
+            <li>Show the camera a thumbs up and hold the first button for a few seconds.</li>
+            <li>Show a thumbs down and hold the second button.</li>
+            <li>Let go and watch it guess. Add more examples if it gets confused.</li>
+          </ol>
+        </div>
+      </section>
+    </main>
+
+    <footer>Everything runs in your browser. Your camera feed never leaves your device.</footer>
+  </div>
+
+  <script>
+    // Runs only if the AI library itself can't be downloaded (the module below never starts).
+    function libraryFailed() {
+      document.getElementById("status").className = "status error";
+      document.getElementById("statusText").textContent =
+        "The AI library couldn't be downloaded. Check your internet connection, pause any ad or content blockers for this page, then reload.";
+      document.getElementById("predHint").textContent = "Something went wrong. See the message at the top.";
+    }
+  </script>
+
+  <script type="module" onerror="libraryFailed()">
+    import { FilesetResolver, ImageEmbedder } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.2.2/vision_bundle.mjs";
+
+    const WASM_URL = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.2.2/wasm";
+    const MODEL_URL = "https://storage.googleapis.com/mediapipe-models/image_embedder/mobilenet_v3_small/float32/1/mobilenet_v3_small.tflite";
+    const MAX_EXAMPLES = 200;
+    const K = 5;
+    const DEFAULT_NAMES = ["Class 1", "Class 2"];
+
+    const $ = (id) => document.getElementById(id);
+    const video = $("video");
+    const videoWrap = $("videoWrap");
+    const placeholder = $("placeholder");
+    const placeholderText = $("placeholderText");
+    const statusEl = $("status");
+    const statusText = $("statusText");
+    const recName = $("recName");
+    const prediction = $("prediction");
+    const predName = $("predName");
+    const predConf = $("predConf");
+    const predHint = $("predHint");
+
+    const classes = [0, 1].map((i) => ({
+      examples: [],
+      input: $("name" + i),
+      count: $("count" + i),
+      countFill: $("countFill" + i),
+      train: $("train" + i),
+      clear: $("clear" + i),
+      barName: $("barName" + i),
+      barPct: $("barPct" + i),
+      barFill: $("barFill" + i),
+    }));
+
+    const state = {
+      embedder: null,
+      modelReady: false,
+      cameraReady: false,
+      modelError: "",
+      cameraError: "",
+      runtimeError: "",
+      training: -1,        // index of the class being trained, or -1
+      lastVideoTime: -1,
+      lastTimestamp: -Infinity,
+    };
+
+    // ---------- Small helpers ----------
+    function setText(el, text) {
+      if (el.textContent !== text) el.textContent = text;
+    }
+    function className(i) {
+      return classes[i].input.value.trim() || DEFAULT_NAMES[i];
+    }
+    function pct(x) {
+      return Math.round(x * 100) + "%";
+    }
+    function isReady() {
+      return state.modelReady && state.cameraReady && !state.runtimeError;
+    }
+    function hasError() {
+      return Boolean(state.cameraError || state.modelError || state.runtimeError);
+    }
+    // MediaPipe needs strictly increasing timestamps in VIDEO mode.
+    function nextTimestamp() {
+      let t = performance.now();
+      if (t <= state.lastTimestamp) t = state.lastTimestamp + 1;
+      state.lastTimestamp = t;
+      return t;
+    }
+
+    // ---------- Status line ----------
+    function setStatus(kind, text) {
+      statusEl.className = "status " + kind;
+      setText(statusText, text);
+    }
+    function updateStatus() {
+      const errors = [state.cameraError, state.modelError, state.runtimeError].filter(Boolean);
+      if (errors.length) setStatus("error", errors.join("\n"));
+      else if (!state.modelReady) setStatus("loading", "Loading the AI model...");
+      else if (!state.cameraReady) setStatus("loading", "Waiting for the camera... Allow access if your browser asks.");
+      else setStatus("ready", "Ready.");
+
+      if (state.cameraError) {
+        placeholder.hidden = false;
+        setText(placeholderText, "Camera unavailable");
+      }
+      render();
+    }
+
+    // ---------- Rendering ----------
+    function render() {
+      const ready = isReady();
+      classes.forEach((c, i) => {
+        const n = c.examples.length;
+        const full = n >= MAX_EXAMPLES;
+        const active = state.training === i;
+        setText(c.count, String(n));
+        c.countFill.style.width = (n / MAX_EXAMPLES) * 100 + "%";
+        c.train.disabled = !ready || full;
+        c.train.classList.toggle("active", active);
+        setText(c.train, full ? "Full (200 max)" : active ? "Learning..." : "Hold to train");
+        c.clear.disabled = n === 0;
+        setText(c.barName, className(i));
+      });
+
+      videoWrap.classList.toggle("recording", state.training >= 0);
+      if (state.training >= 0) {
+        videoWrap.style.setProperty("--rec-color", "var(--class-" + state.training + ")");
+        setText(recName, className(state.training));
+      }
+
+      if (!ready || !classes.every((c) => c.examples.length > 0)) renderIdle();
+    }
+
+    function renderIdle() {
+      delete prediction.dataset.winner;
+      setText(predConf, "");
+      classes.forEach((c) => {
+        setText(c.barPct, "0%");
+        c.barFill.style.width = "0%";
+      });
+
+      if (!isReady()) {
+        setText(predName, "—");
+        setText(predHint, hasError()
+          ? "Something went wrong. See the message at the top."
+          : "Getting the camera and AI model ready...");
+        return;
+      }
+      const missing = [0, 1].filter((i) => classes[i].examples.length === 0);
+      if (missing.length === 2) {
+        setText(predName, "Teach me first");
+        setText(predHint, "Hold “Hold to train” under each class while you show the camera an example. I need examples of both.");
+      } else {
+        setText(predName, "Almost there");
+        setText(predHint, "Now show me some examples of “" + className(missing[0]) + "”.");
+      }
+    }
+
+    function renderPrediction(winner, confidences, k) {
+      prediction.dataset.winner = String(winner);
+      setText(predName, className(winner));
+      setText(predConf, pct(confidences[winner]));
+      setText(predHint, "Based on a vote of the " + k + " most similar examples.");
+      classes.forEach((c, i) => {
+        setText(c.barPct, pct(confidences[i]));
+        c.barFill.style.width = confidences[i] * 100 + "%";
+      });
+    }
+
+    // ---------- Training ----------
+    function startTraining(i) {
+      if (!isReady() || classes[i].examples.length >= MAX_EXAMPLES) return;
+      state.training = i;
+      render();
+    }
+    function stopTraining(i) {
+      if (state.training === -1) return;
+      if (i === undefined || state.training === i) {
+        state.training = -1;
+        render();
+      }
+    }
+    function addExample(i, embedding) {
+      const c = classes[i];
+      if (c.examples.length >= MAX_EXAMPLES) {
+        stopTraining(i);
+        return;
+      }
+      c.examples.push(embedding);
+      if (c.examples.length >= MAX_EXAMPLES) stopTraining(i);
+      render();
+    }
+
+    // ---------- Prediction (k-nearest neighbours) ----------
+    function predict(embedding) {
+      if (!classes.every((c) => c.examples.length > 0)) return; // render() already shows the idle state
+
+      const total = classes.reduce((sum, c) => sum + c.examples.length, 0);
+      const k = Math.min(K, total);
+      const topSim = [];
+      const topCls = [];
+
+      for (let c = 0; c < classes.length; c++) {
+        for (const example of classes[c].examples) {
+          const sim = ImageEmbedder.cosineSimilarity(embedding, example);
+          if (topSim.length === k && sim <= topSim[k - 1]) continue;
+          let j = topSim.length;
+          while (j > 0 && topSim[j - 1] < sim) j--;
+          topSim.splice(j, 0, sim);
+          topCls.splice(j, 0, c);
+          if (topSim.length > k) {
+            topSim.pop();
+            topCls.pop();
+          }
+        }
+      }
+
+      const votes = classes.map(() => 0);
+      for (const c of topCls) votes[c]++;
+      let winner = 0;
+      for (let c = 1; c < votes.length; c++) if (votes[c] > votes[winner]) winner = c;
+      // A tie is only possible with fewer than 5 examples in total: trust the single closest one.
+      if (votes.filter((v) => v === votes[winner]).length > 1) winner = topCls[0];
+
+      renderPrediction(winner, votes.map((v) => v / k), k);
+    }
+
+    // ---------- Main loop ----------
+    function loop() {
+      if (state.runtimeError) return;
+      requestAnimationFrame(loop);
+
+      if (!isReady() || video.readyState < 2) return;
+      if (video.currentTime === state.lastVideoTime) return; // no new camera frame yet
+      state.lastVideoTime = video.currentTime;
+
+      let result;
+      try {
+        result = state.embedder.embedForVideo(video, nextTimestamp());
+      } catch (err) {
+        console.error(err);
+        state.runtimeError = "The AI model hit an error while looking at the camera. Reload the page to try again.";
+        state.training = -1;
+        updateStatus();
+        return;
+      }
+
+      const embedding = result.embeddings[0];
+      if (!embedding) return;
+      if (state.training >= 0) addExample(state.training, embedding);
+      predict(embedding);
+    }
+
+    // ---------- Camera ----------
+    function waitForVideoData() {
+      return new Promise((resolve) => {
+        if (video.readyState >= 2) resolve();
+        else video.addEventListener("loadeddata", resolve, { once: true });
+      });
+    }
+
+    async function startCamera() {
+      if (!window.isSecureContext || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        const err = new Error("Camera API unavailable");
+        err.name = "InsecureContextError";
+        throw err;
+      }
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: "user", width: { ideal: 640 }, height: { ideal: 480 } },
+        audio: false,
+      });
+      video.srcObject = stream;
+      const [track] = stream.getVideoTracks();
+      if (track) {
+        track.addEventListener("ended", () => {
+          state.cameraReady = false;
+          state.cameraError = "The camera turned off or was unplugged. Reconnect it, then reload the page.";
+          state.training = -1;
+          updateStatus();
+        });
+      }
+      video.play().catch(() => {}); // muted + playsinline normally autoplays; a tap retries below
+      await waitForVideoData();
+    }
+
+    function cameraMessage(err) {
+      const name = err && err.name;
+      const message = (err && err.message) || "";
+      switch (name) {
+        case "InsecureContextError":
+          return "Your browser only allows the camera on secure pages. Open this page from an https:// address or from localhost (phones need https).";
+        case "NotAllowedError":
+        case "PermissionDeniedError":
+        case "SecurityError":
+          if (/system/i.test(message)) {
+            return "Your computer's privacy settings are blocking this browser from using the camera. Allow it in your system settings (on a Mac: System Settings > Privacy & Security > Camera), then reload.";
+          }
+          return "Camera access is blocked. Allow the camera for this page (look for the camera icon in the address bar, or check your browser's site settings), then reload.";
+        case "NotFoundError":
+        case "DevicesNotFoundError":
+        case "OverconstrainedError":
+          return "No camera was found. Connect or turn on a webcam, then reload the page.";
+        case "NotReadableError":
+        case "TrackStartError":
+        case "AbortError":
+          return "Your camera is busy or couldn't start. Close other apps or tabs that might be using it (like Zoom or FaceTime), then reload.";
+        default:
+          return "The camera couldn't start. Reload the page and try again.";
+      }
+    }
+
+    // ---------- AI model ----------
+    async function loadModel() {
+      if (typeof WebAssembly !== "object") {
+        const err = new Error("WebAssembly unavailable");
+        err.name = "NoWebAssembly";
+        throw err;
+      }
+      const vision = await FilesetResolver.forVisionTasks(WASM_URL);
+      return ImageEmbedder.createFromOptions(vision, {
+        baseOptions: { modelAssetPath: MODEL_URL },
+        runningMode: "VIDEO",
+      });
+    }
+
+    function modelMessage(err) {
+      if (err && err.name === "NoWebAssembly") {
+        return "This browser can't run the AI model because it doesn't support WebAssembly. Try a recent version of Chrome, Edge, Firefox or Safari.";
+      }
+      return "The AI model couldn't load. Check your internet connection, pause any ad or content blockers for this page, then reload.";
+    }
+
+    // ---------- Hold-to-train buttons ----------
+    classes.forEach((c, i) => {
+      const btn = c.train;
+      btn.addEventListener("pointerdown", (e) => {
+        if (e.pointerType === "mouse" && e.button !== 0) return;
+        e.preventDefault();
+        try { btn.setPointerCapture(e.pointerId); } catch (_) { /* not supported: pointerup still fires */ }
+        startTraining(i);
+      });
+      for (const type of ["pointerup", "pointercancel", "lostpointercapture"]) {
+        btn.addEventListener(type, () => stopTraining(i));
+      }
+      btn.addEventListener("contextmenu", (e) => e.preventDefault());
+
+      // Keyboard: hold Space or Enter while the button is focused.
+      btn.addEventListener("keydown", (e) => {
+        if (e.key !== " " && e.key !== "Enter") return;
+        e.preventDefault();
+        if (!e.repeat) startTraining(i);
+      });
+      btn.addEventListener("keyup", (e) => {
+        if (e.key === " " || e.key === "Enter") stopTraining(i);
+      });
+      btn.addEventListener("blur", () => stopTraining(i));
+
+      c.clear.addEventListener("click", () => {
+        stopTraining(i);
+        c.examples.length = 0;
+        render();
+      });
+      c.input.addEventListener("input", render);
+    });
+
+    window.addEventListener("blur", () => stopTraining());
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden) stopTraining();
+    });
+    // If the browser refused to autoplay the camera, the first tap starts it.
+    document.addEventListener("pointerdown", () => {
+      if (video.srcObject && video.paused) video.play().catch(() => {});
+    });
+
+    // ---------- Start ----------
+    updateStatus();
+
+    startCamera().then(
+      () => {
+        state.cameraReady = true;
+        placeholder.hidden = true;
+        updateStatus();
+      },
+      (err) => {
+        console.error(err);
+        state.cameraError = cameraMessage(err);
+        updateStatus();
+      }
+    );
+
+    loadModel().then(
+      (embedder) => {
+        state.embedder = embedder;
+        state.modelReady = true;
+        updateStatus();
+      },
+      (err) => {
+        console.error(err);
+        state.modelError = modelMessage(err);
+        updateStatus();
+      }
+    );
+
+    requestAnimationFrame(loop);
+  </script>
+</body>
+</html>
