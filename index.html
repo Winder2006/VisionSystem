@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#0a0c10">
-  <meta name="description" content="Teach your webcam to tell two things apart, right in your browser.">
+  <meta name="description" content="Teach your webcam to tell things apart, right in your browser.">
   <title>Teach the Machine</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%232dd4bf'/%3E%3Cstop offset='1' stop-color='%23fb7185'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='32' height='32' rx='9' fill='url(%23g)'/%3E%3Ccircle cx='16' cy='16' r='6' fill='none' stroke='%230a0c10' stroke-width='3'/%3E%3Ccircle cx='16' cy='16' r='2' fill='%230a0c10'/%3E%3C/svg%3E">
   <style>
@@ -14,11 +14,12 @@
       --surface: #11141b;
       --surface-2: #181c26;
       --border: #232937;
+      --border-strong: #343c4e;
       --text: #edf0f6;
       --muted: #8b94a7;
       --faint: #5d6678;
-      --class-0: #2dd4bf;
-      --class-1: #fb7185;
+      --brand-a: #2dd4bf;
+      --brand-b: #fb7185;
       --ok: #4ade80;
       --warn: #fbbf24;
       --err: #f87171;
@@ -63,7 +64,7 @@
       width: 42px;
       height: 42px;
       border-radius: 12px;
-      background: linear-gradient(135deg, var(--class-0), var(--class-1));
+      background: linear-gradient(135deg, var(--brand-a), var(--brand-b));
       display: grid;
       place-items: center;
       box-shadow: 0 6px 24px rgba(45, 212, 191, 0.18);
@@ -115,8 +116,6 @@
       border: 1px solid var(--border);
       border-radius: var(--radius);
     }
-    .c0 { --accent: var(--class-0); }
-    .c1 { --accent: var(--class-1); }
 
     /* ---------- Camera ---------- */
     .stage { overflow: hidden; }
@@ -142,7 +141,7 @@
       pointer-events: none;
       transition: border-color 0.15s;
     }
-    .video-wrap.recording::after { border-color: var(--rec-color, var(--class-0)); }
+    .video-wrap.recording::after { border-color: var(--rec-color, var(--brand-a)); }
 
     .placeholder {
       position: absolute;
@@ -187,7 +186,7 @@
       width: 8px;
       height: 8px;
       border-radius: 50%;
-      background: var(--rec-color, var(--class-0));
+      background: var(--rec-color, var(--brand-a));
       animation: pulse 1s ease-in-out infinite;
     }
 
@@ -211,13 +210,13 @@
       line-height: 1.15;
       letter-spacing: -0.03em;
     }
-    .pred-name { overflow-wrap: anywhere; transition: color 0.15s; }
+    .pred-name { color: var(--text); overflow-wrap: anywhere; transition: color 0.15s; }
     .pred-conf { color: var(--muted); font-variant-numeric: tabular-nums; }
-    .prediction[data-winner="0"] .pred-name { color: var(--class-0); }
-    .prediction[data-winner="1"] .pred-name { color: var(--class-1); }
     .pred-hint { margin: 6px 0 16px; color: var(--muted); font-size: 14px; }
 
     .bars { display: grid; gap: 12px; }
+    .bar-row { transition: opacity 0.15s; }
+    .bar-row.empty { opacity: 0.45; }
     .bar-head {
       display: flex;
       justify-content: space-between;
@@ -237,8 +236,51 @@
     }
 
     /* ---------- Classes ---------- */
-    .classes { display: grid; gap: 16px; }
-    .class-card { position: relative; padding: 18px 16px 16px; overflow: hidden; }
+    .classes { display: grid; gap: 12px; }
+    .classes-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      min-height: 34px;
+    }
+    .classes-title { margin: 0; font-size: 15px; font-weight: 650; }
+    .classes-count {
+      margin-left: 6px;
+      color: var(--muted);
+      font-weight: 500;
+      font-variant-numeric: tabular-nums;
+    }
+    .ghost-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: var(--surface);
+      color: var(--text);
+      font: inherit;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background-color 0.15s, border-color 0.15s, opacity 0.15s;
+    }
+    .ghost-btn:hover:not(:disabled) { background: var(--surface-2); border-color: var(--border-strong); }
+    .ghost-btn:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+    .ghost-btn:disabled { opacity: 0.4; cursor: default; }
+
+    .class-list {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+    .class-card {
+      position: relative;
+      padding: 18px 16px 16px;
+      overflow: hidden;
+      container-type: inline-size;
+    }
     .class-card::before {
       content: "";
       position: absolute;
@@ -247,6 +289,13 @@
       right: 0;
       height: 3px;
       background: var(--accent);
+    }
+    .cc-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      min-height: 20px;
     }
     .field-label {
       display: flex;
@@ -258,7 +307,25 @@
       text-transform: uppercase;
       color: var(--muted);
     }
-    .swatch { width: 10px; height: 10px; border-radius: 3px; background: var(--accent); }
+    .swatch { flex: none; width: 10px; height: 10px; border-radius: 3px; background: var(--accent); }
+    .remove-btn {
+      flex: none;
+      display: grid;
+      place-items: center;
+      width: 28px;
+      height: 28px;
+      margin: -6px -8px -6px 0;
+      padding: 0;
+      border: 0;
+      border-radius: 8px;
+      background: none;
+      color: var(--faint);
+      cursor: pointer;
+    }
+    .remove-btn:hover { color: var(--text); background: var(--surface-2); }
+    .remove-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+    .remove-btn[hidden] { display: none; }
+
     .name-input {
       display: block;
       width: 100%;
@@ -273,6 +340,7 @@
       outline: none;
       transition: border-color 0.15s, box-shadow 0.15s;
     }
+    .name-input::placeholder { color: var(--faint); }
     .name-input:focus {
       border-color: var(--accent);
       box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent);
@@ -287,6 +355,9 @@
       color: var(--muted);
     }
     .count-row b { color: var(--text); font-variant-numeric: tabular-nums; }
+    @container (max-width: 169px) {
+      .count-unit { display: none; }
+    }
     .clear-btn {
       margin-right: -6px;
       padding: 4px 6px;
@@ -312,7 +383,7 @@
       border: 0;
       border-radius: 12px;
       background: var(--accent);
-      color: #071114;
+      color: var(--accent-ink, #071114);
       font: inherit;
       font-size: 15px;
       font-weight: 700;
@@ -324,7 +395,7 @@
       -webkit-tap-highlight-color: transparent;
       transition: transform 0.08s, filter 0.15s, box-shadow 0.15s, background-color 0.15s;
     }
-    .train-btn:hover:not(:disabled) { filter: brightness(1.08); }
+    .train-btn:hover:not(:disabled) { filter: brightness(1.1); }
     .train-btn:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
     .train-btn.active {
       transform: scale(0.98);
@@ -333,6 +404,32 @@
         0 0 28px color-mix(in srgb, var(--accent) 45%, transparent);
     }
     .train-btn:disabled { background: var(--surface-2); color: var(--faint); cursor: not-allowed; }
+
+    .add-class {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      min-height: 50px;
+      padding: 12px;
+      border: 1.5px dashed var(--border-strong);
+      border-radius: var(--radius);
+      background: transparent;
+      color: var(--muted);
+      font: inherit;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: color 0.15s, border-color 0.15s, background-color 0.15s;
+    }
+    .add-class:hover:not(:disabled) {
+      color: var(--text);
+      border-color: var(--muted);
+      background: rgba(255, 255, 255, 0.02);
+    }
+    .add-class:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+    .add-class:disabled { cursor: default; opacity: 0.6; }
 
     .howto { padding: 16px 18px; color: var(--muted); font-size: 14px; }
     .howto h2 { margin: 0 0 8px; font-size: 14px; color: var(--text); }
@@ -345,8 +442,7 @@
     /* ---------- Tablet & phone ---------- */
     @media (max-width: 860px) {
       .layout { grid-template-columns: minmax(0, 1fr); }
-      .classes { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; }
-      .howto { grid-column: 1 / -1; }
+      .class-list { grid-template-columns: repeat(3, minmax(0, 1fr)); }
     }
     @media (max-width: 600px) {
       .page {
@@ -357,8 +453,8 @@
       h1 { font-size: 20px; }
       .tagline { font-size: 13px; }
       .prediction { padding: 16px; }
+      .class-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .class-card { padding: 16px 12px 12px; }
-      .count-unit { display: none; }
       .train-btn { font-size: 14px; }
     }
     @media (prefers-reduced-motion: reduce) {
@@ -378,7 +474,7 @@
         </div>
         <div>
           <h1>Teach the Machine</h1>
-          <p class="tagline">Show it two things. It learns to tell them apart.</p>
+          <p class="tagline">Show it a few things. It learns to tell them apart.</p>
         </div>
       </div>
       <div id="status" class="status loading" role="status" aria-live="polite">
@@ -411,48 +507,32 @@
             <span class="pred-conf" id="predConf"></span>
           </div>
           <p class="pred-hint" id="predHint">Getting the camera and AI model ready...</p>
-          <div class="bars">
-            <div class="bar-row c0">
-              <div class="bar-head"><span class="bar-name" id="barName0">Thumbs Up</span><span class="bar-pct" id="barPct0">0%</span></div>
-              <div class="bar-track"><div class="bar-fill" id="barFill0"></div></div>
-            </div>
-            <div class="bar-row c1">
-              <div class="bar-head"><span class="bar-name" id="barName1">Thumbs Down</span><span class="bar-pct" id="barPct1">0%</span></div>
-              <div class="bar-track"><div class="bar-fill" id="barFill1"></div></div>
-            </div>
-          </div>
+          <div class="bars" id="bars"></div>
         </div>
       </section>
 
       <section class="classes" aria-label="Classes">
-        <article class="card class-card c0">
-          <label class="field-label" for="name0"><span class="swatch"></span>Class 1</label>
-          <input class="name-input" id="name0" type="text" value="Thumbs Up" maxlength="24" autocomplete="off" spellcheck="false">
-          <div class="count-row">
-            <span><b id="count0">0</b> / 200<span class="count-unit"> examples</span></span>
-            <button class="clear-btn" id="clear0" type="button" disabled>Clear</button>
-          </div>
-          <div class="count-track"><div class="count-fill" id="countFill0"></div></div>
-          <button class="train-btn" id="train0" type="button" disabled>Hold to train</button>
-        </article>
+        <div class="classes-head">
+          <h2 class="classes-title">Classes<span class="classes-count" id="classCount">2 / 6</span></h2>
+          <button class="ghost-btn" id="resetBtn" type="button" disabled>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M3 12a9 9 0 1 0 3-6.7"/>
+              <path d="M3 4v5h5"/>
+            </svg>
+            Reset
+          </button>
+        </div>
 
-        <article class="card class-card c1">
-          <label class="field-label" for="name1"><span class="swatch"></span>Class 2</label>
-          <input class="name-input" id="name1" type="text" value="Thumbs Down" maxlength="24" autocomplete="off" spellcheck="false">
-          <div class="count-row">
-            <span><b id="count1">0</b> / 200<span class="count-unit"> examples</span></span>
-            <button class="clear-btn" id="clear1" type="button" disabled>Clear</button>
-          </div>
-          <div class="count-track"><div class="count-fill" id="countFill1"></div></div>
-          <button class="train-btn" id="train1" type="button" disabled>Hold to train</button>
-        </article>
+        <div class="class-list" id="classList"></div>
+
+        <button class="add-class" id="addClassBtn" type="button">+ Add class</button>
 
         <div class="card howto">
           <h2>How it works</h2>
           <ol>
             <li>Show the camera a thumbs up and hold the first button for a few seconds.</li>
             <li>Show a thumbs down and hold the second button.</li>
-            <li>Let go and watch it guess. Add more examples if it gets confused.</li>
+            <li>Let go and watch it guess. Add more classes or examples to teach it more.</li>
           </ol>
         </div>
       </section>
@@ -460,6 +540,33 @@
 
     <footer>Everything runs in your browser. Your camera feed never leaves your device.</footer>
   </div>
+
+  <template id="classTemplate">
+    <article class="card class-card">
+      <div class="cc-head">
+        <label class="field-label"><span class="swatch"></span><span class="label-text">Class</span></label>
+        <button class="remove-btn" type="button" aria-label="Remove class" title="Remove class">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true">
+            <path d="M6 6l12 12M18 6L6 18"/>
+          </svg>
+        </button>
+      </div>
+      <input class="name-input" type="text" maxlength="24" autocomplete="off" spellcheck="false">
+      <div class="count-row">
+        <span><b class="count">0</b> / 200<span class="count-unit"> examples</span></span>
+        <button class="clear-btn" type="button" disabled>Clear</button>
+      </div>
+      <div class="count-track"><div class="count-fill"></div></div>
+      <button class="train-btn" type="button" disabled>Hold to train</button>
+    </article>
+  </template>
+
+  <template id="barTemplate">
+    <div class="bar-row">
+      <div class="bar-head"><span class="bar-name"></span><span class="bar-pct">0%</span></div>
+      <div class="bar-track"><div class="bar-fill"></div></div>
+    </div>
+  </template>
 
   <script>
     // Runs only if the AI library itself can't be downloaded (the module below never starts).
@@ -477,8 +584,23 @@
     const WASM_URL = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.2.2/wasm";
     const MODEL_URL = "https://storage.googleapis.com/mediapipe-models/image_embedder/mobilenet_v3_small/float32/1/mobilenet_v3_small.tflite";
     const MAX_EXAMPLES = 200;
+    const MIN_CLASSES = 2;
+    const MAX_CLASSES = 6;
     const K = 5;
-    const DEFAULT_NAMES = ["Class 1", "Class 2"];
+    const CONFIDENCE_THRESHOLD = 0.6;
+
+    // One color per class, kept for the life of the class. Checked as a set on this dark
+    // background: every pair is distinguishable, including for color-blind viewers, and
+    // class names always appear as text, so color is never the only cue. `ink` is the
+    // higher-contrast text color for that class's button.
+    const PALETTE = [
+      { color: "#0b968a", ink: "#071114" }, // teal
+      { color: "#db556d", ink: "#071114" }, // rose
+      { color: "#9c680e", ink: "#ffffff" }, // ochre
+      { color: "#8b5dbe", ink: "#ffffff" }, // violet
+      { color: "#1b8af6", ink: "#071114" }, // blue
+      { color: "#63a70b", ink: "#071114" }, // green
+    ];
 
     const $ = (id) => document.getElementById(id);
     const video = $("video");
@@ -488,22 +610,19 @@
     const statusEl = $("status");
     const statusText = $("statusText");
     const recName = $("recName");
-    const prediction = $("prediction");
     const predName = $("predName");
     const predConf = $("predConf");
     const predHint = $("predHint");
+    const barsEl = $("bars");
+    const classList = $("classList");
+    const classCount = $("classCount");
+    const addClassBtn = $("addClassBtn");
+    const resetBtn = $("resetBtn");
+    const classTemplate = $("classTemplate");
+    const barTemplate = $("barTemplate");
 
-    const classes = [0, 1].map((i) => ({
-      examples: [],
-      input: $("name" + i),
-      count: $("count" + i),
-      countFill: $("countFill" + i),
-      train: $("train" + i),
-      clear: $("clear" + i),
-      barName: $("barName" + i),
-      barPct: $("barPct" + i),
-      barFill: $("barFill" + i),
-    }));
+    const classes = [];   // in display order; see addClass() for the shape
+    let nextUid = 0;
 
     const state = {
       embedder: null,
@@ -512,7 +631,7 @@
       modelError: "",
       cameraError: "",
       runtimeError: "",
-      training: -1,        // index of the class being trained, or -1
+      training: null,      // the class being trained, or null
       lastVideoTime: -1,
       lastTimestamp: -Infinity,
     };
@@ -521,11 +640,17 @@
     function setText(el, text) {
       if (el.textContent !== text) el.textContent = text;
     }
-    function className(i) {
-      return classes[i].input.value.trim() || DEFAULT_NAMES[i];
+    function defaultName(c) {
+      return "Class " + (classes.indexOf(c) + 1);
+    }
+    function className(c) {
+      return c.input.value.trim() || defaultName(c);
     }
     function pct(x) {
       return Math.round(x * 100) + "%";
+    }
+    function trainedClasses() {
+      return classes.filter((c) => c.examples.length > 0);
     }
     function isReady() {
       return state.modelReady && state.cameraReady && !state.runtimeError;
@@ -563,30 +688,46 @@
     // ---------- Rendering ----------
     function render() {
       const ready = isReady();
+      let total = 0;
+
       classes.forEach((c, i) => {
         const n = c.examples.length;
         const full = n >= MAX_EXAMPLES;
-        const active = state.training === i;
+        const active = state.training === c;
+        const label = "Class " + (i + 1);
+        total += n;
+
+        setText(c.labelText, label);
+        if (c.input.placeholder !== label) c.input.placeholder = label;
         setText(c.count, String(n));
         c.countFill.style.width = (n / MAX_EXAMPLES) * 100 + "%";
         c.train.disabled = !ready || full;
         c.train.classList.toggle("active", active);
         setText(c.train, full ? "Full (200 max)" : active ? "Learning..." : "Hold to train");
         c.clear.disabled = n === 0;
-        setText(c.barName, className(i));
+        c.remove.hidden = classes.length <= MIN_CLASSES;
+        c.remove.setAttribute("aria-label", "Remove " + className(c));
+        setText(c.barName, className(c));
+        c.bar.classList.toggle("empty", n === 0);
       });
 
-      videoWrap.classList.toggle("recording", state.training >= 0);
-      if (state.training >= 0) {
-        videoWrap.style.setProperty("--rec-color", "var(--class-" + state.training + ")");
+      setText(classCount, classes.length + " / " + MAX_CLASSES);
+      const atMax = classes.length >= MAX_CLASSES;
+      addClassBtn.disabled = atMax;
+      setText(addClassBtn, atMax ? "Maximum of 6 classes" : "+ Add class");
+      resetBtn.disabled = total === 0;
+
+      videoWrap.classList.toggle("recording", state.training !== null);
+      if (state.training) {
+        videoWrap.style.setProperty("--rec-color", state.training.color);
         setText(recName, className(state.training));
       }
 
-      if (!ready || !classes.every((c) => c.examples.length > 0)) renderIdle();
+      if (!ready || trainedClasses().length < 2) renderIdle();
     }
 
     function renderIdle() {
-      delete prediction.dataset.winner;
+      predName.style.color = "";
       setText(predConf, "");
       classes.forEach((c) => {
         setText(c.barPct, "0%");
@@ -600,68 +741,136 @@
           : "Getting the camera and AI model ready...");
         return;
       }
-      const missing = [0, 1].filter((i) => classes[i].examples.length === 0);
-      if (missing.length === 2) {
+      const trained = trainedClasses();
+      if (trained.length === 0) {
         setText(predName, "Teach me first");
-        setText(predHint, "Hold “Hold to train” under each class while you show the camera an example. I need examples of both.");
+        setText(predHint, "Hold “Hold to train” under a class while you show the camera an example. I need examples of at least two classes.");
       } else {
         setText(predName, "Almost there");
-        setText(predHint, "Now show me some examples of “" + className(missing[0]) + "”.");
+        const untrained = classes.filter((c) => c.examples.length === 0);
+        setText(predHint, classes.length === 2
+          ? "Now show me some examples of “" + className(untrained[0]) + "”."
+          : "Now teach me at least one more class.");
       }
     }
 
     function renderPrediction(winner, confidences, k) {
-      prediction.dataset.winner = String(winner);
-      setText(predName, className(winner));
-      setText(predConf, pct(confidences[winner]));
-      setText(predHint, "Based on a vote of the " + k + " most similar examples.");
       classes.forEach((c, i) => {
         setText(c.barPct, pct(confidences[i]));
         c.barFill.style.width = confidences[i] * 100 + "%";
       });
+
+      const top = confidences[winner];
+      if (top >= CONFIDENCE_THRESHOLD) {
+        const c = classes[winner];
+        setText(predName, className(c));
+        predName.style.color = c.color;
+        setText(predConf, pct(top));
+        setText(predHint, "Based on a vote of the " + k + " most similar examples.");
+      } else {
+        setText(predName, "Not sure...");
+        predName.style.color = "";
+        setText(predConf, "");
+        setText(predHint, "No class has 60% or more of the votes. Adding more examples can help.");
+      }
+    }
+
+    // ---------- Classes ----------
+    function addClass(name) {
+      if (classes.length >= MAX_CLASSES) return null;
+      const used = new Set(classes.map((c) => c.color));
+      const { color, ink } = PALETTE.find((p) => !used.has(p.color));
+
+      const card = classTemplate.content.firstElementChild.cloneNode(true);
+      const bar = barTemplate.content.firstElementChild.cloneNode(true);
+      const c = {
+        color,
+        examples: [],
+        card,
+        bar,
+        labelText: card.querySelector(".label-text"),
+        input: card.querySelector(".name-input"),
+        count: card.querySelector(".count"),
+        countFill: card.querySelector(".count-fill"),
+        train: card.querySelector(".train-btn"),
+        clear: card.querySelector(".clear-btn"),
+        remove: card.querySelector(".remove-btn"),
+        barName: bar.querySelector(".bar-name"),
+        barPct: bar.querySelector(".bar-pct"),
+        barFill: bar.querySelector(".bar-fill"),
+      };
+
+      const inputId = "className" + nextUid++;
+      c.input.id = inputId;
+      card.querySelector(".field-label").htmlFor = inputId;
+      c.input.value = name || "";
+      card.style.setProperty("--accent", color);
+      card.style.setProperty("--accent-ink", ink);
+      bar.style.setProperty("--accent", color);
+
+      wireClass(c);
+      classes.push(c);
+      classList.append(card);
+      barsEl.append(bar);
+      render();
+      return c;
+    }
+
+    function removeClass(c) {
+      if (classes.length <= MIN_CLASSES) return;
+      if (state.training === c) state.training = null;
+      classes.splice(classes.indexOf(c), 1);
+      c.card.remove();
+      c.bar.remove();
+      render();
+    }
+
+    function resetAll() {
+      state.training = null;
+      classes.forEach((c) => { c.examples.length = 0; });
+      render();
     }
 
     // ---------- Training ----------
-    function startTraining(i) {
-      if (!isReady() || classes[i].examples.length >= MAX_EXAMPLES) return;
-      state.training = i;
+    function startTraining(c) {
+      if (!isReady() || c.examples.length >= MAX_EXAMPLES) return;
+      state.training = c;
       render();
     }
-    function stopTraining(i) {
-      if (state.training === -1) return;
-      if (i === undefined || state.training === i) {
-        state.training = -1;
+    function stopTraining(c) {
+      if (state.training === null) return;
+      if (c === undefined || state.training === c) {
+        state.training = null;
         render();
       }
     }
-    function addExample(i, embedding) {
-      const c = classes[i];
+    function addExample(c, embedding) {
       if (c.examples.length >= MAX_EXAMPLES) {
-        stopTraining(i);
+        stopTraining(c);
         return;
       }
       c.examples.push(embedding);
-      if (c.examples.length >= MAX_EXAMPLES) stopTraining(i);
+      if (c.examples.length >= MAX_EXAMPLES) stopTraining(c);
       render();
     }
 
     // ---------- Prediction (k-nearest neighbours) ----------
     function predict(embedding) {
-      if (!classes.every((c) => c.examples.length > 0)) return; // render() already shows the idle state
+      if (trainedClasses().length < 2) return; // render() already shows the idle state
 
       const total = classes.reduce((sum, c) => sum + c.examples.length, 0);
       const k = Math.min(K, total);
       const topSim = [];
       const topCls = [];
 
-      for (let c = 0; c < classes.length; c++) {
-        for (const example of classes[c].examples) {
+      for (let ci = 0; ci < classes.length; ci++) {
+        for (const example of classes[ci].examples) {
           const sim = ImageEmbedder.cosineSimilarity(embedding, example);
           if (topSim.length === k && sim <= topSim[k - 1]) continue;
           let j = topSim.length;
           while (j > 0 && topSim[j - 1] < sim) j--;
           topSim.splice(j, 0, sim);
-          topCls.splice(j, 0, c);
+          topCls.splice(j, 0, ci);
           if (topSim.length > k) {
             topSim.pop();
             topCls.pop();
@@ -670,11 +879,13 @@
       }
 
       const votes = classes.map(() => 0);
-      for (const c of topCls) votes[c]++;
+      for (const ci of topCls) votes[ci]++;
       let winner = 0;
-      for (let c = 1; c < votes.length; c++) if (votes[c] > votes[winner]) winner = c;
-      // A tie is only possible with fewer than 5 examples in total: trust the single closest one.
-      if (votes.filter((v) => v === votes[winner]).length > 1) winner = topCls[0];
+      for (let ci = 1; ci < votes.length; ci++) if (votes[ci] > votes[winner]) winner = ci;
+      // Break a tie by trusting the single closest example among the tied classes.
+      if (votes.filter((v) => v === votes[winner]).length > 1) {
+        winner = topCls.find((ci) => votes[ci] === votes[winner]);
+      }
 
       renderPrediction(winner, votes.map((v) => v / k), k);
     }
@@ -694,14 +905,14 @@
       } catch (err) {
         console.error(err);
         state.runtimeError = "The AI model hit an error while looking at the camera. Reload the page to try again.";
-        state.training = -1;
+        state.training = null;
         updateStatus();
         return;
       }
 
       const embedding = result.embeddings[0];
       if (!embedding) return;
-      if (state.training >= 0) addExample(state.training, embedding);
+      if (state.training) addExample(state.training, embedding);
       predict(embedding);
     }
 
@@ -729,7 +940,7 @@
         track.addEventListener("ended", () => {
           state.cameraReady = false;
           state.cameraError = "The camera turned off or was unplugged. Reconnect it, then reload the page.";
-          state.training = -1;
+          state.training = null;
           updateStatus();
         });
       }
@@ -784,17 +995,17 @@
       return "The AI model couldn't load. Check your internet connection, pause any ad or content blockers for this page, then reload.";
     }
 
-    // ---------- Hold-to-train buttons ----------
-    classes.forEach((c, i) => {
+    // ---------- Controls ----------
+    function wireClass(c) {
       const btn = c.train;
       btn.addEventListener("pointerdown", (e) => {
         if (e.pointerType === "mouse" && e.button !== 0) return;
         e.preventDefault();
         try { btn.setPointerCapture(e.pointerId); } catch (_) { /* not supported: pointerup still fires */ }
-        startTraining(i);
+        startTraining(c);
       });
       for (const type of ["pointerup", "pointercancel", "lostpointercapture"]) {
-        btn.addEventListener(type, () => stopTraining(i));
+        btn.addEventListener(type, () => stopTraining(c));
       }
       btn.addEventListener("contextmenu", (e) => e.preventDefault());
 
@@ -802,20 +1013,30 @@
       btn.addEventListener("keydown", (e) => {
         if (e.key !== " " && e.key !== "Enter") return;
         e.preventDefault();
-        if (!e.repeat) startTraining(i);
+        if (!e.repeat) startTraining(c);
       });
       btn.addEventListener("keyup", (e) => {
-        if (e.key === " " || e.key === "Enter") stopTraining(i);
+        if (e.key === " " || e.key === "Enter") stopTraining(c);
       });
-      btn.addEventListener("blur", () => stopTraining(i));
+      btn.addEventListener("blur", () => stopTraining(c));
 
       c.clear.addEventListener("click", () => {
-        stopTraining(i);
+        stopTraining(c);
         c.examples.length = 0;
         render();
       });
+      c.remove.addEventListener("click", () => {
+        removeClass(c);
+        addClassBtn.focus();
+      });
       c.input.addEventListener("input", render);
+    }
+
+    addClassBtn.addEventListener("click", () => {
+      const c = addClass("");
+      if (c) c.input.focus();
     });
+    resetBtn.addEventListener("click", resetAll);
 
     window.addEventListener("blur", () => stopTraining());
     document.addEventListener("visibilitychange", () => {
@@ -827,6 +1048,8 @@
     });
 
     // ---------- Start ----------
+    addClass("Thumbs Up");
+    addClass("Thumbs Down");
     updateStatus();
 
     startCamera().then(
